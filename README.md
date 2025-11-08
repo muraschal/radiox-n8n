@@ -6,16 +6,20 @@
 
 RadioX wird auf eine **n8n-basierte Orchestrierung** umgestellt. Das Backend liefert fokussierte API-Services, während n8n die Workflow-Orchestrierung übernimmt.
 
+**n8n Instanz**: [n8n.zvv.dev](https://n8n.zvv.dev) (bereits vorhanden)
+
 ### Architektur-Prinzip
 
 ```
 ┌─────────────────┐
-│   n8n Workflow  │  ← Orchestrierung, Scheduling, Error Handling
+│ n8n.zvv.dev     │  ← Orchestrierung, Scheduling, Error Handling
+│   (n8n Workflow)│
 └────────┬────────┘
          │ HTTP API Calls
          ↓
 ┌─────────────────┐
 │  Backend APIs   │  ← Business Logic, Audio Processing
+│  (lokal/remote) │
 └────────┬────────┘
          │
          ↓
@@ -34,11 +38,13 @@ RadioX wird auf eine **n8n-basierte Orchestrierung** umgestellt. Das Backend lie
   - `POST /api/generate-content` - GPT Content Generation
   - `POST /api/generate-audio` - ElevenLabs TTS
   - `POST /api/stream` - Icecast Upload (optional für MVP)
+- [ ] Backend muss von n8n.zvv.dev erreichbar sein (öffentliche URL oder Tunnel)
 
 #### 1.2 n8n Setup
-- [ ] n8n Docker Container starten
-- [ ] n8n Webhook konfigurieren
-- [ ] Environment Variables setzen (API Keys)
+- [x] n8n Instanz vorhanden: [n8n.zvv.dev](https://n8n.zvv.dev)
+- [ ] n8n Workflow erstellen
+- [ ] Backend-URL in n8n konfigurieren
+- [ ] Environment Variables in n8n setzen (API Keys)
 
 #### 1.3 Datenbank (optional für MVP)
 - [ ] Supabase Connection String
@@ -135,7 +141,7 @@ Content-Type: multipart/form-data
 #### Node 2: Generate Content
 - **Type**: HTTP Request
 - **Method**: POST
-- **URL**: `http://backend:8000/api/generate-content`
+- **URL**: `https://your-backend-url.com/api/generate-content` (oder lokaler Tunnel)
 - **Body**: 
   ```json
   {
@@ -163,7 +169,7 @@ Content-Type: multipart/form-data
 #### Node 4: Generate Audio
 - **Type**: HTTP Request
 - **Method**: POST
-- **URL**: `http://backend:8000/api/generate-audio`
+- **URL**: `https://your-backend-url.com/api/generate-audio` (oder lokaler Tunnel)
 - **Body**: `{{ $json }}`
 
 #### Node 5: Save Audio
@@ -181,19 +187,19 @@ SUPABASE_URL=https://...
 SUPABASE_KEY=...
 ```
 
-#### n8n (.env)
-```env
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=...
-BACKEND_URL=http://backend:8000
-```
+#### n8n (in n8n.zvv.dev konfigurieren)
+- **Backend URL**: In n8n Workflow als Variable setzen
+- **API Keys**: In n8n Credentials speichern
+  - OpenAI API Key
+  - ElevenLabs API Key
+  - Supabase Credentials (optional)
 
 ## 🏗️ Projekt-Struktur
 
 ```
 radiox-n8n/
 ├── README.md                 # Dieser Plan
-├── docker-compose.yml        # n8n + Backend
+├── docker-compose.yml        # Backend (optional)
 ├── backend/
 │   ├── main.py              # FastAPI Server
 │   ├── services/
@@ -201,12 +207,13 @@ radiox-n8n/
 │   │   ├── elevenlabs_service.py  # TTS Integration
 │   │   └── audio_service.py # Audio Processing
 │   └── requirements.txt
-├── n8n/
-│   ├── workflows/           # n8n Workflow Exports
-│   └── .env
+├── workflows/
+│   └── radiox-workflow.json # n8n Workflow Export
 └── docs/
     └── workflow-design.md   # Detailliertes Workflow-Design
 ```
+
+**Hinweis**: n8n läuft auf [n8n.zvv.dev](https://n8n.zvv.dev), Workflows werden dort erstellt und können als JSON exportiert werden.
 
 ## 📝 Schritt-für-Schritt: Erste Show in 30 Min
 
@@ -226,15 +233,12 @@ uvicorn main:app --reload --port 8000
 
 ### Minute 5-10: n8n Setup
 ```bash
-# 1. n8n Docker starten
-docker run -it --rm \
-  --name n8n \
-  -p 5678:5678 \
-  -v ~/.n8n:/home/node/.n8n \
-  n8nio/n8n
-
-# 2. n8n öffnen: http://localhost:5678
-# 3. Workflow erstellen
+# 1. n8n öffnen: https://n8n.zvv.dev
+# 2. Neuen Workflow erstellen
+# 3. Backend-URL konfigurieren (muss von n8n erreichbar sein)
+#    Option A: Backend öffentlich erreichbar machen
+#    Option B: ngrok/Cloudflare Tunnel für lokales Backend
+# 4. API Keys in n8n Credentials speichern
 ```
 
 ### Minute 10-20: Workflow bauen
@@ -283,8 +287,8 @@ docker run -it --rm \
 - **Supabase** - Database (optional MVP)
 
 ### Orchestrierung
-- **n8n** - Workflow Automation
-- **Docker** - Containerization
+- **n8n** - Workflow Automation ([n8n.zvv.dev](https://n8n.zvv.dev))
+- **Docker** - Containerization (optional für Backend)
 
 ## 📚 Ressourcen
 
@@ -317,9 +321,40 @@ docker run -it --rm \
 ## 🎯 Nächste Schritte
 
 1. **JETZT**: Backend API Endpoints implementieren
-2. **DANN**: n8n Workflow erstellen
-3. **DANACH**: Erste Show testen
-4. **SPÄTER**: Erweiterungen nach Plan
+2. **DANN**: Backend öffentlich erreichbar machen (Tunnel oder Deployment)
+3. **DANACH**: n8n Workflow auf [n8n.zvv.dev](https://n8n.zvv.dev) erstellen
+4. **SPÄTER**: Erste Show testen & Erweiterungen nach Plan
+
+## 🔗 Wichtige Links
+
+- **n8n Instanz**: [n8n.zvv.dev](https://n8n.zvv.dev)
+- **Backend URL**: Wird konfiguriert (muss von n8n erreichbar sein)
+
+## 🌐 Backend für n8n erreichbar machen
+
+Da n8n auf `n8n.zvv.dev` läuft und das Backend lokal entwickelt wird, muss das Backend öffentlich erreichbar sein. Optionen:
+
+### Option 1: ngrok (Schnellste Lösung für MVP)
+```bash
+# ngrok installieren: https://ngrok.com/
+ngrok http 8000
+
+# URL kopieren (z.B. https://abc123.ngrok.io)
+# In n8n Workflow verwenden: https://abc123.ngrok.io/api/...
+```
+
+### Option 2: Cloudflare Tunnel
+```bash
+# Cloudflared installieren
+cloudflared tunnel --url http://localhost:8000
+```
+
+### Option 3: Deployment (Production)
+- Vercel / Railway / Render
+- Docker Container auf Server
+- Eigene Domain mit Reverse Proxy
+
+**Für MVP: ngrok ist am schnellsten!**
 
 **Let's build! 🚀**
 
