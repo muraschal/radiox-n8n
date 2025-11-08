@@ -1,0 +1,190 @@
+{
+  "name": "RadioX - Show Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Start Show",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL || 'https://your-tunnel-url.trycloudflare.com' }}/api/generate-content",
+        "authentication": "none",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"topic\": \"{{ $json.topic || 'Tech News' }}\",\n  \"duration\": {{ $json.duration || 300 }},\n  \"style\": \"{{ $json.style || 'cyberpunk' }}\"\n}",
+        "options": {}
+      },
+      "id": "generate-content",
+      "name": "Generate Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Generiert Radio-Show Content mit GPT"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform Content für ElevenLabs\nconst content = $input.item.json.content;\nconst speaker = $input.item.json.speaker || 'marcel';\n\nreturn {\n  text: content,\n  voice_id: speaker,\n  output_format: 'mp3'\n};"
+      },
+      "id": "transform-content",
+      "name": "Transform for ElevenLabs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notes": "Formatiert Content für ElevenLabs TTS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL || 'https://your-tunnel-url.trycloudflare.com' }}/api/generate-audio",
+        "authentication": "none",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ $json }}",
+        "options": {}
+      },
+      "id": "generate-audio",
+      "name": "Generate Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "notes": "Generiert Audio mit ElevenLabs TTS"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL || 'https://your-tunnel-url.trycloudflare.com' }}{{ $json.file_path }}",
+        "authentication": "none",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-audio",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "notes": "Lädt generierte Audio-Datei herunter"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=radiox-show-{{ $now.format('YYYY-MM-DD-HHmmss') }}.mp3",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "save-audio",
+      "name": "Save Audio",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "notes": "Speichert Audio-Datei lokal"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "healthy"
+            }
+          ]
+        }
+      },
+      "id": "check-backend",
+      "name": "Check Backend",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [250, 500],
+      "notes": "Optional: Prüft ob Backend erreichbar ist"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL || 'https://your-tunnel-url.trycloudflare.com' }}/health",
+        "authentication": "none",
+        "options": {}
+      },
+      "id": "health-check",
+      "name": "Health Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [250, 400],
+      "notes": "Prüft Backend Verfügbarkeit"
+    }
+  ],
+  "connections": {
+    "Start Show": {
+      "main": [
+        [
+          {
+            "node": "Generate Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content": {
+      "main": [
+        [
+          {
+            "node": "Transform for ElevenLabs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform for ElevenLabs": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Audio": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Save Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-08T00:00:00.000Z",
+  "versionId": "1"
+}
+
