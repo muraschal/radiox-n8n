@@ -334,7 +334,35 @@ uvicorn main:app --reload --port 8000
 
 Da n8n auf `n8n.zvv.dev` läuft und das Backend lokal entwickelt wird, muss das Backend öffentlich erreichbar sein. Optionen:
 
-### Option 1: ngrok (Schnellste Lösung für MVP)
+### Option 1: Cloudflare Tunnel (Empfohlen) ⭐
+
+**Schnellstart:**
+```powershell
+# Windows
+cd backend
+.\start-tunnel.ps1
+
+# Linux/Mac
+cd backend
+./start-tunnel.sh
+```
+
+**Manuell:**
+```bash
+# Quick Tunnel (24h, kein Account nötig)
+cloudflared tunnel --url http://localhost:8000
+
+# URL kopieren (z.B. https://abc123.trycloudflare.com)
+# In n8n Workflow verwenden: https://abc123.trycloudflare.com/api/...
+```
+
+**Installation:**
+- Windows: `choco install cloudflared` oder [Download](https://github.com/cloudflare/cloudflared/releases)
+- Linux/Mac: `brew install cloudflared` oder [Download](https://github.com/cloudflare/cloudflared/releases)
+
+Siehe `backend/tunnel-setup.md` für detaillierte Anleitung.
+
+### Option 2: ngrok
 ```bash
 # ngrok installieren: https://ngrok.com/
 ngrok http 8000
@@ -343,18 +371,12 @@ ngrok http 8000
 # In n8n Workflow verwenden: https://abc123.ngrok.io/api/...
 ```
 
-### Option 2: Cloudflare Tunnel
-```bash
-# Cloudflared installieren
-cloudflared tunnel --url http://localhost:8000
-```
-
 ### Option 3: Deployment (Production)
 - Vercel / Railway / Render
 - Docker Container auf Server
 - Eigene Domain mit Reverse Proxy
 
-**Für MVP: ngrok ist am schnellsten!**
+**Für MVP: Cloudflare Tunnel ist am einfachsten!**
 
 **Let's build! 🚀**
 

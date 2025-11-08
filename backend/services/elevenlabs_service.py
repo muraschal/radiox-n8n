@@ -4,8 +4,8 @@ ElevenLabs Service für Text-to-Speech
 import os
 import tempfile
 from pathlib import Path
-from elevenlabs import generate, set_api_key, VoiceSettings
 from elevenlabs.client import ElevenLabs
+from elevenlabs import VoiceSettings
 
 
 class ElevenLabsService:
@@ -14,7 +14,6 @@ class ElevenLabsService:
         if not api_key:
             raise ValueError("ELEVENLABS_API_KEY environment variable is required")
         
-        set_api_key(api_key)
         self.client = ElevenLabs(api_key=api_key)
         
         # Voice IDs aus Environment (kann später erweitert werden)
@@ -52,20 +51,23 @@ class ElevenLabsService:
         )
         
         try:
-            # Generiere Audio
-            audio = generate(
+            # Generiere Audio mit neuer API
+            audio_generator = self.client.text_to_speech.convert(
+                voice_id=voice_id,
                 text=text,
-                voice=voice_id,
-                model="eleven_multilingual_v2",
+                model_id="eleven_multilingual_v2",
                 voice_settings=voice_settings
             )
+            
+            # Konvertiere Generator zu Bytes
+            audio_bytes = b"".join(audio_generator)
             
             # Speichere temporär
             temp_dir = Path(tempfile.gettempdir())
             output_file = temp_dir / f"radiox_audio_{os.urandom(8).hex()}.{output_format}"
             
             with open(output_file, "wb") as f:
-                f.write(audio)
+                f.write(audio_bytes)
             
             file_size = output_file.stat().st_size
             
