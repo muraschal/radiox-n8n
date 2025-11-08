@@ -47,3 +47,4 @@ Write-Host ""
 # Starte cloudflared
 & $cloudflaredPath tunnel --url http://localhost:8000
 
+
